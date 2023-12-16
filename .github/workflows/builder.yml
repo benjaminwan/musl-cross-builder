@@ -1,0 +1,79 @@
+name: musl-cross-builder
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ubuntu2204:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        ver: [11.2.0]
+        arch_type:
+          [
+            aarch64-linux-musl,
+            x86_64-linux-musl,
+          ]
+
+    name: ${{ matrix.arch_type }}-${{ matrix.ver }}
+
+    env:
+      riscv32: "git-b76f37fd5625d038141b52184956fb4b7838e9a5"
+      prerelease: false
+
+    steps:
+      # 检出musl-cross-make
+      - name: checkout musl-cross-make
+        uses: actions/checkout@v3
+        with:
+          repository: richfelker/musl-cross-make
+          path: musl-cross-make
+          submodules: recursive
+
+      # 检出builder
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set riscv32 musl to ${{ env.riscv32 }}
+        if: matrix.arch_type == 'riscv32-linux-musl'
+        run: sed "s|MUSL_VER = git-master|MUSL_VER = ${{ env.riscv32 }}|" -i config.mak
+
+      # 复制config.mak
+      - name: Copy updated config.mak to build directory
+        run: |
+          cp config.mak musl-cross-make/config.mak
+
+      - name: make & install ${{ matrix.arch_type }} toolchain
+        run: |
+          cd musl-cross-make
+          make -j"$(nproc)" install TARGET=${{ matrix.arch_type }} OUTPUT=../build/${{ matrix.arch_type }}
+
+      - name: archive ${{ matrix.arch_type }} toolchain
+        run: 7z a ${{ matrix.arch_type }}.7z build/${{ matrix.arch_type }}/
+
+      - name: set tag via date
+        run: echo "github_tag=$(date +"%y%V")" >> $GITHUB_ENV
+
+      - name: set release info dynamically from config.mak
+        run: printf "%s\n" "$(sed -rn "/GCC_VER = (.*)/,/GCC_CONFIG = (.*)/p" config.mak)" > release_body.md
+
+      # 上传artifact
+      - name: upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.arch_type }}
+          path: ${{ matrix.arch_type }}.7z
+
+      - name: Create release - tag - assets
+        uses: ncipollo/release-action@v1.12.0
+        with:
+          prerelease: false
+          artifacts: "${{ matrix.arch_type }}.7z"
+          replacesArtifacts: true
+          tag: "${{ env.github_tag }}"
+          name: "musl-cross-builder toolchains"
+          bodyFile: "release_body.md"
+          allowUpdates: true
+          token: ${{ secrets.GITHUB_TOKEN }}
