@@ -2,29 +2,30 @@ name: musl-cross-builder
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - '*'
 
 jobs:
-  ubuntu2204:
-    runs-on: ubuntu-latest
+  build-and-release:
+    runs-on: ubuntu-22.04
 
     strategy:
       fail-fast: false
       matrix:
-        ver: [11.2.0]
+        os: [ubuntu2204]
         arch_type:
           [
-            aarch64-linux-musl,
             x86_64-linux-musl,
           ]
 
-    name: ${{ matrix.arch_type }}-${{ matrix.ver }}
-
-    env:
-      riscv32: "git-b76f37fd5625d038141b52184956fb4b7838e9a5"
-      prerelease: false
+    name: ${{ matrix.arch_type }}-${{ matrix.os }}
 
     steps:
-      # 检出musl-cross-make
+      # 检出builder
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: checkout musl-cross-make
         uses: actions/checkout@v3
         with:
@@ -32,32 +33,23 @@ jobs:
           path: musl-cross-make
           submodules: recursive
 
-      # 检出builder
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Set riscv32 musl to ${{ env.riscv32 }}
-        if: matrix.arch_type == 'riscv32-linux-musl'
-        run: sed "s|MUSL_VER = git-master|MUSL_VER = ${{ env.riscv32 }}|" -i config.mak
-
       # 复制config.mak
       - name: Copy updated config.mak to build directory
         run: |
           cp config.mak musl-cross-make/config.mak
 
+      # 编译 & install
       - name: make & install ${{ matrix.arch_type }} toolchain
         run: |
           cd musl-cross-make
-          make -j"$(nproc)" install TARGET=${{ matrix.arch_type }} OUTPUT=../build/${{ matrix.arch_type }}
+          make -j$(nproc) install TARGET=${{ matrix.arch_type }} OUTPUT=~/install/${{ matrix.arch_type }}
 
+      # 7z压缩
       - name: archive ${{ matrix.arch_type }} toolchain
-        run: 7z a ${{ matrix.arch_type }}.7z build/${{ matrix.arch_type }}/
-
-      - name: set tag via date
-        run: echo "github_tag=$(date +"%y%V")" >> $GITHUB_ENV
+        run: 7z a ${{ matrix.arch_type }}.7z ~/install/${{ matrix.arch_type }}/
 
       - name: set release info dynamically from config.mak
-        run: printf "%s\n" "$(sed -rn "/GCC_VER = (.*)/,/GCC_CONFIG = (.*)/p" config.mak)" > release_body.md
+        run: printf "%s\n" "$(sed -rn "/GCC_VER = (.*)/,/MPFR_VER = (.*)/p" config.mak)" > release.md
 
       # 上传artifact
       - name: upload
@@ -66,14 +58,26 @@ jobs:
           name: ${{ matrix.arch_type }}
           path: ${{ matrix.arch_type }}.7z
 
-      - name: Create release - tag - assets
-        uses: ncipollo/release-action@v1.12.0
+      # 创建release
+      - name: create-release
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body_path: release.md
+          draft: false
           prerelease: false
-          artifacts: "${{ matrix.arch_type }}.7z"
-          replacesArtifacts: true
-          tag: "${{ env.github_tag }}"
-          name: "musl-cross-builder toolchains"
-          bodyFile: "release_body.md"
-          allowUpdates: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: upload-release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PKG_NAME: ${{ matrix.arch_type }}-${{ matrix.os }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: ${{ matrix.arch_type }}.7z
+          asset_name: ${{ matrix.arch_type }}.7z
+          asset_content_type: application/x-7z-compressed
