@@ -7,7 +7,7 @@ on:
       - '*'
 
 jobs:
-  build-and-release:
+  build:
     runs-on: ubuntu-22.04
 
     strategy:
@@ -16,7 +16,54 @@ jobs:
         os: [ubuntu2204]
         arch_type:
           [
+            aarch64-linux-musl,
+            aarch64_be-linux-musl,
+            arm-linux-musleabi,
+            arm-linux-musleabihf,
+            armeb-linux-musleabi,
+            armeb-linux-musleabihf,
+            armel-linux-musleabi,
+            armel-linux-musleabihf,
+            armv5l-linux-musleabi,
+            armv5l-linux-musleabihf,
+            armv6-linux-musleabi,
+            armv6-linux-musleabihf,
+            armv7l-linux-musleabihf,
+            armv7m-linux-musleabi,
+            armv7r-linux-musleabihf,
+            i486-linux-musl,
+            i686-linux-musl,
+            m68k-linux-musl,
+            microblaze-linux-musl,
+            microblazeel-linux-musl,
+            mips-linux-musl,
+            mips-linux-muslsf,
+            mips-linux-musln32sf,
+            mips64-linux-musl,
+            mips64-linux-musln32,
+            mips64-linux-musln32sf,
+            mips64el-linux-musl,
+            mips64el-linux-musln32,
+            mips64el-linux-musln32sf,
+            mipsel-linux-musl,
+            mipsel-linux-musln32,
+            mipsel-linux-musln32sf,
+            mipsel-linux-muslsf,
+            or1k-linux-musl,
+            powerpc-linux-musl,
+            powerpc-linux-muslsf,
+            powerpc64-linux-musl,
+            powerpc64le-linux-musl,
+            powerpcle-linux-musl,
+            powerpcle-linux-muslsf,
+            riscv64-linux-musl,
+            s390x-linux-musl,
+            sh2-linux-musl,
+            sh2eb-linux-musl,
+            sh4-linux-musl,
+            sh4eb-linux-musl,
             x86_64-linux-musl,
+            x86_64-linux-muslx32,
           ]
 
     name: ${{ matrix.arch_type }}-${{ matrix.os }}
@@ -42,14 +89,11 @@ jobs:
       - name: make & install ${{ matrix.arch_type }} toolchain
         run: |
           cd musl-cross-make
-          make -j$(nproc) install TARGET=${{ matrix.arch_type }} OUTPUT=~/install/${{ matrix.arch_type }}
+          make -j$(nproc) install TARGET=${{ matrix.arch_type }} OUTPUT=/opt/${{ matrix.arch_type }}
 
       # 7z压缩
       - name: archive ${{ matrix.arch_type }} toolchain
-        run: 7z a ${{ matrix.arch_type }}.7z ~/install/${{ matrix.arch_type }}/
-
-      - name: set release info dynamically from config.mak
-        run: printf "%s\n" "$(sed -rn "/GCC_VER = (.*)/,/MPFR_VER = (.*)/p" config.mak)" > release.md
+        run: 7z a ${{ matrix.arch_type }}.7z /opt/${{ matrix.arch_type }}/
 
       # 上传artifact
       - name: upload
@@ -58,26 +102,35 @@ jobs:
           name: ${{ matrix.arch_type }}
           path: ${{ matrix.arch_type }}.7z
 
-      # 创建release
-      - name: create-release
-        id: create-release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body_path: release.md
-          draft: false
-          prerelease: false
+      # 获取所有的git log和tag
+      - name: Unshallow
+        run: git fetch --prune --unshallow
 
-      - name: upload-release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PKG_NAME: ${{ matrix.arch_type }}-${{ matrix.os }}
+      # 获取git log 从 previousTag 到 lastTag
+      - name: Get git log
+        id: git-log
+        run: |
+          previousTag=$(git describe --abbrev=0 --tags `git rev-list --tags --skip=1 --max-count=1`)
+          lastTag=$(git describe --abbrev=0 --tags)
+          echo "previousTag:$previousTag ~ lastTag:$lastTag"
+          log=$(git log $previousTag..$lastTag --pretty=format:'- %cd %an: %s\n' --date=format:'%Y-%m-%d %H:%M:%S')
+          echo "$log"
+          echo "log_state="$log"" >> $GITHUB_ENV
+
+      # 创建Changelog文件 triggered by git tag push
+      - name: set release info dynamically from config.mak
+        run: |
+          printf "%s\n" "$(sed -rn "/GCC_VER = (.*)/,/MPFR_VER = (.*)/p" config.mak)" > release.md
+          echo -e '${{ env.log_state }}' >> release.md
+
+      # 创建release 上传release
+      - name: Create release and upload-archive
+        uses: ncipollo/release-action@v1
         with:
-          upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: ${{ matrix.arch_type }}.7z
-          asset_name: ${{ matrix.arch_type }}.7z
-          asset_content_type: application/x-7z-compressed
+          prerelease: false
+          name: musl toolchains ${{ github.ref }}
+          bodyFile: release.md
+          artifacts: ${{ matrix.arch_type }}.7z
+          allowUpdates: true
+          artifactContentType: application/x-7z-compressed
+          token: ${{ secrets.GITHUB_TOKEN }}
