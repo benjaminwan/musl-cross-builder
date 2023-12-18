@@ -80,16 +80,19 @@ jobs:
           path: musl-cross-make
           submodules: recursive
 
-      # 复制config.mak
+      # 复制config.mak和execinfo.h
       - name: Copy updated config.mak to build directory
-        run: |
-          cp config.mak musl-cross-make/config.mak
+        run: cp config.mak musl-cross-make/config.mak
 
       # 编译 & install
       - name: make & install ${{ matrix.arch_type }} toolchain
         run: |
           cd musl-cross-make
           make -j$(nproc) install TARGET=${{ matrix.arch_type }} OUTPUT=/opt/${{ matrix.arch_type }}
+
+      # 复制execinfo.h
+      - name: Copy updated config.mak to build directory
+        run: cp execinfo.h /opt/${{ matrix.arch_type }}/${{ matrix.arch_type }}/include/execinfo.h
 
       # 7z压缩
       - name: archive ${{ matrix.arch_type }} toolchain
@@ -124,6 +127,7 @@ jobs:
           echo -e '${{ env.log_state }}' >> release.md
 
       # 创建release 上传release
+      # https://github.com/marketplace/actions/create-release
       - name: Create release and upload-archive
         uses: ncipollo/release-action@v1
         with:
