@@ -9,7 +9,7 @@ musl libc是另一种C标准库，比glibc更小巧，并支持静态链接CRT�
 ### 源代码和相关资源
 
 源代码来自：https://git.zv.io/toolchains/musl-cross-make
-编译好的工具链也可以从此处下载：https://musl.cc/
+工具链也可以从此处下载：https://musl.cc/
 原始代码仓库来自：https://github.com/richfelker/musl-cross-make
 
 ### 工具链部署

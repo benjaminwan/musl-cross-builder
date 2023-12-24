@@ -7,7 +7,23 @@ on:
       - '*'
 
 jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: download musl-cross-make
+        run: wget -qO musl-cross-make.tar.gz https://git.zv.io/toolchains/musl-cross-make/-/archive/musl.cc-old/musl-cross-make-musl.cc-old.tar.gz
+
+      - name: "Upload Artifact"
+        uses: actions/upload-artifact@v3
+        id: upload
+        with:
+          name: musl-cross-make
+          path: musl-cross-make.tar.gz
+
   build:
+    needs: download
     runs-on: ubuntu-22.04
 
     strategy:
@@ -56,10 +72,13 @@ jobs:
             powerpc64le-linux-musl,
             powerpcle-linux-musl,
             powerpcle-linux-muslsf,
+            riscv32-linux-musl,
             riscv64-linux-musl,
             s390x-linux-musl,
             sh2-linux-musl,
+            sh2-linux-muslfdpic,
             sh2eb-linux-musl,
+            sh2eb-linux-muslfdpic,
             sh4-linux-musl,
             sh4eb-linux-musl,
             x86_64-linux-musl,
@@ -73,15 +92,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: checkout musl-cross-make
-        uses: actions/checkout@v3
+      # 下载artifact
+      - name: Download artifact - musl-cross-make-master
+        uses: actions/download-artifact@v3
+        id: download
         with:
-          repository: richfelker/musl-cross-make
-          path: musl-cross-make
-          submodules: recursive
+          name: musl-cross-make
+          path: artifacts
 
-      # 复制config.mak和execinfo.h
-      - name: Copy updated config.mak to build directory
+      # 解压 文件夹改名
+      - name: Unpack musl-cross-make
+        run: |
+          tar -xf artifacts/musl-cross-make.tar.gz
+          mv musl-cross-make-musl.cc-old musl-cross-make
+
+      # 复制config.mak
+      - name: Copy config.mak to build directory
         run: cp config.mak musl-cross-make/config.mak
 
       # 编译 & install
