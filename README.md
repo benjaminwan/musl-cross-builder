@@ -23,8 +23,9 @@ musl libc是另一种C标准库，比glibc更小巧，并支持静态链接CRT�
 PATH="/opt/x86_64-linux-musl/bin:$PATH"
 ```
 
-### 使用工具链
-
+### x86 native build
+* 这里特指在x86_64平台上进行本机编译 host==target
+* 注意：如果想在树莓派或riscv等板子上进行本机编译，需要去musl.cc下载以-native结尾的工具链
 ```shell
 #没有添加PATH时，可以用绝对路径
 export CC="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-gcc -static"
@@ -34,3 +35,77 @@ export CC="x86_64-linux-musl-gcc -static"
 export CXX="x86_64-linux-musl-g++ -static"
 cmake ......
 ```
+
+### cross build(交叉编译)
+* 在x86平台上，使用工具链编译出其它平台的可执行文件
+* x86平台本机编译也可以使用此方法，cmake可以兼容
+```shell
+#从本仓库下载musl-cross.toolchain.cmake放到需要编译的项目里
+#使用参数传入 -DCMAKE_TOOLCHAIN_FILE=路径/musl-cross.toolchain.cmake
+
+#配置TOOLCHAIN_NAME，支持的名称在下面的表格中列出
+export TOOLCHAIN_NAME="riscv64-linux-musl"
+
+#配置TOOLCHAIN_PATH，你自己部署工具链的路径
+export TOOLCHAIN_PATH="/opt/riscv64-linux-musl"
+
+cmake -DCMAKE_TOOLCHAIN_FILE=path/to/musl-cross.toolchain.cmake \
+      -DCMAKE_C_FLAGS="-pthread" -DCMAKE_CXX_FLAGS="-pthread" \
+      ..
+    
+```
+
+### 工具链列表
+| 工具链名称 | 备注      | 
+|----------|---------|
+| aarch64-linux-musl       |         |
+| aarch64_be-linux-musl    |         |
+| arm-linux-musleabi       |         |
+| arm-linux-musleabihf     |         |
+| armeb-linux-musleabi     |         |
+| armeb-linux-musleabihf   |         |
+| armel-linux-musleabi     |         |
+| armel-linux-musleabihf   |         |
+| armv5l-linux-musleabi    |         |
+| armv5l-linux-musleabihf  |         |
+| armv6-linux-musleabi     |         |
+| armv6-linux-musleabihf   |         |
+| armv7l-linux-musleabihf  |         |
+| armv7m-linux-musleabi    |         |
+| armv7r-linux-musleabihf  |         |
+| i486-linux-musl          |         |
+| i686-linux-musl          |         |
+| m68k-linux-musl          |         |
+| microblaze-linux-musl    |         |
+| microblazeel-linux-musl  |         |
+| mips-linux-musl          |         |
+| mips-linux-muslsf        |         |
+| mips-linux-musln32sf     |         |
+| mips64-linux-musl        |         |
+| mips64-linux-musln32     |         |
+| mips64-linux-musln32sf   |         |
+| mips64el-linux-musl      |         |
+| mips64el-linux-musln32   |         |
+| mips64el-linux-musln32sf |         |
+| mipsel-linux-musl        |         |
+| mipsel-linux-musln32     |         |
+| mipsel-linux-musln32sf   |         |
+| mipsel-linux-muslsf      |         |
+| or1k-linux-musl          |         |
+| powerpc-linux-musl       |         |
+| powerpc-linux-muslsf     |         |
+| powerpc64-linux-musl     |         |
+| powerpc64le-linux-musl   |         |
+| powerpcle-linux-musl     |         |
+| powerpcle-linux-muslsf   |         |
+| riscv32-linux-musl       |         |
+| riscv64-linux-musl       |         |
+| s390x-linux-musl         |         |
+| sh2-linux-musl           |         |
+| sh2-linux-muslfdpic      |         |
+| sh2eb-linux-musl         |         |
+| sh2eb-linux-muslfdpic    |         |
+| sh4-linux-musl           |         |
+| sh4eb-linux-musl         |         |
+| x86_64-linux-musl        | 一般家用PC机 |
+| x86_64-linux-muslx32     |         |
