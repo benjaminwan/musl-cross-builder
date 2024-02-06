@@ -2,9 +2,6 @@ name: musl-cross-builder
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - '*'
 
 jobs:
   download:
@@ -29,8 +26,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu2204]
-        arch_type:
+        ver:
+          - { gcc: 11.3.1 }
+        arch:
           [
             aarch64-linux-musl,
             aarch64_be-linux-musl,
@@ -85,7 +83,10 @@ jobs:
             x86_64-linux-muslx32,
           ]
 
-    name: ${{ matrix.arch_type }}-${{ matrix.os }}
+    name: ${{ matrix.arch }}-${{ matrix.ver.gcc }}
+
+    env:
+      PKG_NAME: ${{ matrix.arch }}-${{ matrix.ver.gcc }}
 
     steps:
       # 检出builder
@@ -111,46 +112,30 @@ jobs:
         run: cp config.mak musl-cross-make/config.mak
 
       # 编译 & install
-      - name: make & install ${{ matrix.arch_type }} toolchain
+      - name: make & install ${{ matrix.arch }} toolchain
         run: |
           cd musl-cross-make
-          make -j$(nproc) install TARGET=${{ matrix.arch_type }} OUTPUT=/opt/${{ matrix.arch_type }}
+          make -j$(nproc) install TARGET=${{ matrix.arch }} OUTPUT=/opt/${{ matrix.arch }}
 
       # 复制execinfo.h
       - name: Copy updated config.mak to build directory
-        run: cp execinfo.h /opt/${{ matrix.arch_type }}/${{ matrix.arch_type }}/include/execinfo.h
+        run: cp execinfo.h /opt/${{ matrix.arch }}/${{ matrix.arch }}/include/execinfo.h
 
       # 7z压缩
-      - name: archive ${{ matrix.arch_type }} toolchain
-        run: 7z a ${{ matrix.arch_type }}.7z /opt/${{ matrix.arch_type }}/
+      - name: archive ${{ matrix.arch }} toolchain
+        run: 7z a ${{ env.PKG_NAME }}.7z /opt/${{ matrix.arch }}/
 
       # 上传artifact
       - name: upload
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.arch_type }}
-          path: ${{ matrix.arch_type }}.7z
-
-      # 获取所有的git log和tag
-      - name: Unshallow
-        run: git fetch --prune --unshallow
-
-      # 获取git log 从 previousTag 到 lastTag
-      - name: Get git log
-        id: git-log
-        run: |
-          previousTag=$(git describe --abbrev=0 --tags `git rev-list --tags --skip=1 --max-count=1`)
-          lastTag=$(git describe --abbrev=0 --tags)
-          echo "previousTag:$previousTag ~ lastTag:$lastTag"
-          log=$(git log $previousTag..$lastTag --pretty=format:'- %cd %an: %s\n' --date=format:'%Y-%m-%d %H:%M:%S')
-          echo "$log"
-          echo "log_state="$log"" >> $GITHUB_ENV
+          name: ${{ env.PKG_NAME }}
+          path: ${{ env.PKG_NAME }}.7z
 
       # 创建Changelog文件 triggered by git tag push
       - name: set release info dynamically from config.mak
         run: |
           printf "%s\n" "$(sed -rn "/GCC_VER = (.*)/,/MPFR_VER = (.*)/p" config.mak)" > release.md
-          echo -e '${{ env.log_state }}' >> release.md
 
       # 创建release 上传release
       # https://github.com/marketplace/actions/create-release
@@ -158,9 +143,8 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           prerelease: false
-          name: musl toolchains ${{ github.ref }}
           bodyFile: release.md
-          artifacts: ${{ matrix.arch_type }}.7z
+          artifacts: ${{ env.PKG_NAME }}.7z
           allowUpdates: true
           artifactContentType: application/x-7z-compressed
           token: ${{ secrets.GITHUB_TOKEN }}
