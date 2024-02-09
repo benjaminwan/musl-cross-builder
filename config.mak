@@ -13,9 +13,9 @@ BINUTILS_CONFIG += --enable-gold=yes
 GCC_CONFIG += --enable-default-pie --enable-static-pie --disable-cet
 
 CONFIG_SUB_REV = 888c8e3d5f7b
-GCC_VER = 11-20230427
+GCC_VER = 10.4.0
 BINUTILS_VER = 2.37
-MUSL_VER = git-b76f37fd5625d038141b52184956fb4b7838e9a5
+MUSL_VER = 1.2.3
 GMP_VER = 6.2.1
 MPC_VER = 1.2.1
 MPFR_VER = 4.1.0
