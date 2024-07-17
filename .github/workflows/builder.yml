@@ -119,11 +119,11 @@ jobs:
         run: 7z a ${{ env.PKG_NAME }}.7z /opt/${{ matrix.arch }}/
 
       # 上传artifact
-      - name: upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.PKG_NAME }}
-          path: ${{ env.PKG_NAME }}.7z
+#      - name: upload
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: ${{ env.PKG_NAME }}
+#          path: ${{ env.PKG_NAME }}.7z
 
       # 创建Changelog文件 triggered by git tag push
       - name: set release info dynamically from config.mak
