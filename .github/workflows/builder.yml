@@ -24,13 +24,17 @@ jobs:
             armel-linux-musleabihf,
             armv5l-linux-musleabi,
             armv5l-linux-musleabihf,
+            armv5te-linux-musleabi,
             armv6-linux-musleabi,
             armv6-linux-musleabihf,
+            armv7-linux-musleabi,
+            armv7-linux-musleabihf,
             armv7l-linux-musleabihf,
             armv7m-linux-musleabi,
             armv7r-linux-musleabihf,
             i486-linux-musl,
             i686-linux-musl,
+            i586-linux-musl,
             m68k-linux-musl,
             microblaze-linux-musl,
             microblazeel-linux-musl,
@@ -65,7 +69,12 @@ jobs:
             sh4eb-linux-musl,
             x86_64-linux-musl,
             x86_64-linux-muslx32,
+            loongarch64-linux-musl,
           ]
+        exclude:
+          - arch: sh2-linux-muslfdpic
+          - arch: sh2eb-linux-muslfdpic
+          - arch: loongarch64-linux-musl
 
     name: ${{ matrix.arch }}-${{ matrix.ver.gcc }}
 
