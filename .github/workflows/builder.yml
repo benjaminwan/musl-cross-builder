@@ -4,30 +4,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  download:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: download musl-cross-make
-        run: wget -qO musl-cross-make.tar.gz https://git.zv.io/toolchains/musl-cross-make/-/archive/musl.cc-old/musl-cross-make-musl.cc-old.tar.gz
-
-      - name: "Upload Artifact"
-        uses: actions/upload-artifact@v4
-        id: upload
-        with:
-          name: musl-cross-make
-          path: musl-cross-make.tar.gz
-
   build:
-    needs: download
     runs-on: ubuntu-22.04
 
     strategy:
       fail-fast: false
       matrix:
         ver:
-          - { gcc: 11.3.1 }
+          - { gcc: 11.4.0 }
         arch:
           [
             aarch64-linux-musl,
@@ -40,12 +24,16 @@ jobs:
             armel-linux-musleabihf,
             armv5l-linux-musleabi,
             armv5l-linux-musleabihf,
+            armv5te-linux-musleabi,
             armv6-linux-musleabi,
             armv6-linux-musleabihf,
+            armv7-linux-musleabi,
+            armv7-linux-musleabihf,
             armv7l-linux-musleabihf,
             armv7m-linux-musleabi,
             armv7r-linux-musleabihf,
             i486-linux-musl,
+            i586-linux-musl,
             i686-linux-musl,
             m68k-linux-musl,
             microblaze-linux-musl,
@@ -81,7 +69,10 @@ jobs:
             sh4eb-linux-musl,
             x86_64-linux-musl,
             x86_64-linux-muslx32,
+            loongarch64-linux-musl,
           ]
+        exclude:
+          - arch: loongarch64-linux-musl
 
     name: ${{ matrix.arch }}-${{ matrix.ver.gcc }}
 
@@ -89,23 +80,23 @@ jobs:
       PKG_NAME: ${{ matrix.arch }}-${{ matrix.ver.gcc }}
 
     steps:
+      - name: Host - update
+        run: sudo apt-get update
+
+      - name: Host - Install host bison
+        run: sudo apt-get install -y bison
+
       # 检出builder
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # 下载artifact
-      - name: Download artifact - musl-cross-make-master
-        uses: actions/download-artifact@v3
-        id: download
+      - name: checkout musl-cross-make
+        uses: actions/checkout@v4
         with:
-          name: musl-cross-make
-          path: artifacts
-
-      # 解压 文件夹改名
-      - name: Unpack musl-cross-make
-        run: |
-          tar -xf artifacts/musl-cross-make.tar.gz
-          mv musl-cross-make-musl.cc-old musl-cross-make
+          repository: benjaminwan/musl-cross-make
+          path: musl-cross-make
+          ref: master
+          submodules: recursive
 
       # 复制config.mak
       - name: Copy config.mak to build directory
@@ -126,16 +117,16 @@ jobs:
         run: 7z a ${{ env.PKG_NAME }}.7z /opt/${{ matrix.arch }}/
 
       # 上传artifact
-      - name: upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.PKG_NAME }}
-          path: ${{ env.PKG_NAME }}.7z
+#      - name: upload
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: ${{ env.PKG_NAME }}
+#          path: ${{ env.PKG_NAME }}.7z
 
       # 创建Changelog文件 triggered by git tag push
       - name: set release info dynamically from config.mak
         run: |
-          printf "%s\n" "$(sed -rn "/GCC_VER = (.*)/,/MPFR_VER = (.*)/p" config.mak)" > release.md
+          printf "%s\n" "$(sed -rn "/GCC_VER = (.*)/,/LINUX_VER = (.*)/p" config.mak)" > release.md
 
       # 创建release 上传release
       # https://github.com/marketplace/actions/create-release
