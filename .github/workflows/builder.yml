@@ -33,8 +33,8 @@ jobs:
             armv7m-linux-musleabi,
             armv7r-linux-musleabihf,
             i486-linux-musl,
-            i586-linux-musl,
             i686-linux-musl,
+            i586-linux-musl,
             m68k-linux-musl,
             microblaze-linux-musl,
             microblazeel-linux-musl,
@@ -72,6 +72,8 @@ jobs:
             loongarch64-linux-musl,
           ]
         exclude:
+          - arch: sh2-linux-muslfdpic
+          - arch: sh2eb-linux-muslfdpic
           - arch: loongarch64-linux-musl
 
     name: ${{ matrix.arch }}-${{ matrix.ver.gcc }}
