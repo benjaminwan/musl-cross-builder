@@ -23,7 +23,26 @@ musl libc是另一种C标准库，比glibc更小巧，并支持静态链接CRT�
 PATH="/opt/x86_64-linux-musl/bin:$PATH"
 ```
 
-### x86 native build
+### cross build(交叉编译)
+* 在x86平台上，使用工具链编译出其它平台的可执行文件
+* x86平台本机编译也可以使用此方法，cmake可以兼容
+```shell
+#从本仓库下载musl-cross.toolchain.cmake放到需要编译的项目里
+#使用参数传入 -DCMAKE_TOOLCHAIN_FILE=路径/musl-cross.toolchain.cmake
+
+#配置TOOLCHAIN_NAME，支持的名称在下面的表格中列出
+export TOOLCHAIN_NAME="riscv64-linux-musl"
+
+#配置TOOLCHAIN_PATH，你自己部署工具链的路径
+export TOOLCHAIN_PATH="/opt/riscv64-linux-musl"
+
+cmake -DCMAKE_TOOLCHAIN_FILE=path/to/musl-cross.toolchain.cmake \
+      -DCMAKE_C_FLAGS="-pthread" -DCMAKE_CXX_FLAGS="-pthread" \
+      ..
+    
+```
+
+### native build(本机编译)
 
 * 这里特指在x86_64平台上进行本机编译 host==target
 * 注意：如果想在树莓派或riscv等板子上进行本机编译，需要去musl.cc下载以-native结尾的工具链
@@ -55,26 +74,9 @@ export SIZE="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-size"
 export CPP="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-cpp"
 export AS="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-as"
 export F77="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-gfortran"
-``
+````
 
-### cross build(交叉编译)
-* 在x86平台上，使用工具链编译出其它平台的可执行文件
-* x86平台本机编译也可以使用此方法，cmake可以兼容
-```shell
-#从本仓库下载musl-cross.toolchain.cmake放到需要编译的项目里
-#使用参数传入 -DCMAKE_TOOLCHAIN_FILE=路径/musl-cross.toolchain.cmake
 
-#配置TOOLCHAIN_NAME，支持的名称在下面的表格中列出
-export TOOLCHAIN_NAME="riscv64-linux-musl"
-
-#配置TOOLCHAIN_PATH，你自己部署工具链的路径
-export TOOLCHAIN_PATH="/opt/riscv64-linux-musl"
-
-cmake -DCMAKE_TOOLCHAIN_FILE=path/to/musl-cross.toolchain.cmake \
-      -DCMAKE_C_FLAGS="-pthread" -DCMAKE_CXX_FLAGS="-pthread" \
-      ..
-    
-```
 
 ### 工具链列表
 
