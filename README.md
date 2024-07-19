@@ -23,19 +23,6 @@ musl libc是另一种C标准库，比glibc更小巧，并支持静态链接CRT�
 PATH="/opt/x86_64-linux-musl/bin:$PATH"
 ```
 
-### x86 native build
-* 这里特指在x86_64平台上进行本机编译 host==target
-* 注意：如果想在树莓派或riscv等板子上进行本机编译，需要去musl.cc下载以-native结尾的工具链
-```shell
-#没有添加PATH时，可以用绝对路径
-export CC="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-gcc -static"
-export CXX="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-g++ -static"
-#有添加PATH时
-export CC="x86_64-linux-musl-gcc -static"
-export CXX="x86_64-linux-musl-g++ -static"
-cmake ......
-```
-
 ### cross build(交叉编译)
 * 在x86平台上，使用工具链编译出其它平台的可执行文件
 * x86平台本机编译也可以使用此方法，cmake可以兼容
@@ -55,9 +42,46 @@ cmake -DCMAKE_TOOLCHAIN_FILE=path/to/musl-cross.toolchain.cmake \
     
 ```
 
+### native build(本机编译)
+
+* 这里特指在x86_64平台上进行本机编译 host==target
+* 注意：如果想在树莓派或riscv等板子上进行本机编译，需要去musl.cc下载以-native结尾的工具链
+
+```shell
+#没有添加PATH时，可以用绝对路径
+export CC="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-gcc"
+export CXX="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-g++"
+
+#有添加PATH时
+export CC="x86_64-linux-musl-gcc"
+export CXX="x86_64-linux-musl-g++"
+......
+cmake ......
+```
+
+### 其它项
+
+```shell
+export C_INCLUDE_PATH="/opt/x86_64-linux-musl/x86_64-linux-musl/include"
+export LD="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-ld"
+export AR="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-ar"
+export RANLIB="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-ranlib"
+export OBJCOPY="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-objcopy"
+export OBJDUMP="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-objdump"
+export STRIP="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-strip"
+export NM="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-nm"
+export SIZE="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-size"
+export CPP="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-cpp"
+export AS="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-as"
+export F77="/opt/x86_64-linux-musl/bin/x86_64-linux-musl-gfortran"
+````
+
+
+
 ### 工具链列表
-| 工具链名称 | 备注      | 
-|----------|---------|
+
+| 工具链名称                    | 备注      | 
+|--------------------------|---------|
 | aarch64-linux-musl       |         |
 | aarch64_be-linux-musl    |         |
 | arm-linux-musleabi       |         |
