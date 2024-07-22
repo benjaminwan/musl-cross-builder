@@ -12,7 +12,7 @@ COMMON_CONFIG += CFLAGS="${FLAG}" CXXFLAGS="${FLAG}" FFLAGS="${FLAG}" LDFLAGS="-
 BINUTILS_CONFIG += --enable-gold=yes
 GCC_CONFIG += --enable-default-pie --enable-static-pie --disable-cet
 
-CONFIG_SUB_REV = 888c8e3d5f7b
+CONFIG_SUB_REV = 948ae97c
 GCC_VER = 11.4.0
 BINUTILS_VER = 2.39
 MUSL_VER = 1.2.4
