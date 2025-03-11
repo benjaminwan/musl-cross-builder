@@ -13,7 +13,7 @@ BINUTILS_CONFIG += --enable-gold=yes
 GCC_CONFIG += --enable-default-pie --enable-static-pie --disable-cet
 
 CONFIG_SUB_REV = 948ae97c
-GCC_VER = 12.2.0
+GCC_VER = 12.4.0
 BINUTILS_VER = 2.39
 MUSL_VER = 1.2.4
 GMP_VER = 6.2.1

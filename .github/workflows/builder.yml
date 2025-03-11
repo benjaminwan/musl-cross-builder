@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         ver:
-          - { gcc: 12.2.0 }
+          - { gcc: 12.4.0 }
         arch:
           [
             aarch64-linux-musl,
