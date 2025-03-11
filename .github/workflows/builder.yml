@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         ver:
-          - { gcc: 14.1.0 }
+          - { gcc: 14.2.0 }
         arch:
           [
             aarch64-linux-musl,
@@ -128,7 +128,7 @@ jobs:
       # 创建Changelog文件 triggered by git tag push
       - name: set release info dynamically from config.mak
         run: |
-          printf "%s\n" "$(sed -rn "/GCC_VER = (.*)/,/LINUX_VER = (.*)/p" config.mak)" > release.md
+          printf "%s\n" "$(sed -rn "/CONFIG_SUB_REV = (.*)/,/LINUX_VER = (.*)/p" config.mak)" > release.md
 
       # 创建release 上传release
       # https://github.com/marketplace/actions/create-release
